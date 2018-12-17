@@ -1,7 +1,7 @@
 #include "SpellCommon.as";
 #include "SpellComponents.as";
 
-// texture used to render spells
+// texture used to render custom spell graphics
 const string textureName = "spell render texture";
 
 // make sure the texture exists. if not, create it
@@ -68,6 +68,8 @@ void onInit(CRules@ this)
 
     this.set_u32("gametime last fired", getGameTime());
 
+    // update bag highlighting
+    this.addCommandID("highlight bag");
     // move selected bag slot forward
     this.addCommandID("highlight bag forward");
     // move selected bag slot backward
@@ -94,6 +96,56 @@ void onRestart(CRules@ this)
 
 void onCommand(CRules@ this, u8 cmd, CBitStream @params)
 {
+    // update bag highlighting
+    if (cmd == this.getCommandID("highlight bag"))
+    {
+        CBlob@ blob = getBlobByNetworkID(params.read_netid());
+        if (blob is null)
+        {
+            return;
+        }
+
+        CInventory@ inv = blob.getInventory();
+        if (inv is null)
+        {
+            return;
+        }
+
+        int selected = this.get_s32("selected slot");
+
+        for (int i = 0; i < 8; i++)
+        {
+            CBlob@ item = inv.getItem(i);
+            if (item is null)
+            {
+                continue;
+            }
+
+            if (item.getName() != "componentbag")
+            {
+                continue;
+            }
+
+            if (i == selected)
+            {
+                CSprite@ itemSprite = item.getSprite();
+                if (itemSprite !is null)
+                {
+                    itemSprite.SetFrame(1);
+                }
+                item.inventoryIconFrame = 1;
+            }
+            else
+            {
+                CSprite@ itemSprite = item.getSprite();
+                if (itemSprite !is null)
+                {
+                    itemSprite.SetFrame(0);
+                }
+                item.inventoryIconFrame = 0;
+            }
+        }
+    }
     // move selected bag slot forward
     if (cmd == this.getCommandID("highlight bag forward"))
     {
@@ -381,7 +433,7 @@ void onTick(CRules@ this)
             return;
         }
 
-        if (controls.isKeyJustPressed(EKEY_CODE::KEY_KEY_V))
+        if (controls.isKeyJustPressed(EKEY_CODE::KEY_KEY_B))
         {
             int selected = this.get_s32("selected slot");
             int new_selected = selected + 1 > 8 ? 8 : selected + 1;
@@ -394,7 +446,7 @@ void onTick(CRules@ this)
             this.SendCommand(this.getCommandID("highlight bag forward"), params);
         }
 
-        if (controls.isKeyJustPressed(EKEY_CODE::KEY_KEY_B))
+        if (controls.isKeyJustPressed(EKEY_CODE::KEY_KEY_N))
         {
             int selected = this.get_s32("selected slot");
             int new_selected = selected - 1 < 0 ? 0 : selected - 1;
